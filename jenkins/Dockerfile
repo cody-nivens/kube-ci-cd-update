@@ -35,4 +35,15 @@ RUN wget -qO- https://get.docker.com/ | sh
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
 RUN chmod +x kubectl
 RUN mv ./kubectl /usr/local/bin/kubectl
+
+COPY basic-security.groovy /var/lib/jenkins/init.groovy.d/basic-security.groovy
+
+# In case you are running as root
+RUN chown -R jenkins:jenkins /var/lib/jenkins/init.groovy.d/
+
+COPY install-plugins.sh /usr/local/bin/
+COPY jenkins-support /usr/local/bin/
+COPY plugins.txt /var/lib/jenkins/plugins.txt
+RUN /usr/local/bin/install-plugins.sh < /var/lib/jenkins/plugins.txt
+
 CMD ["/usr/bin/java", "-jar", "jenkins.war"]
