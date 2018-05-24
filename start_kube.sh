@@ -1,11 +1,11 @@
-#!/bin/bash -x
+#!/bin/bash
 
 read -p "Press [Enter] key to stop and delete minikube and install jenkins minikube..."
 minikube stop
 minikube delete
 sudo rm -rf ~/.minikube
 sudo rm -rf ~/.kube
-minikube start --memory 5000 --cpus 2 --kubernetes-version v1.10.3
+minikube start --memory 4000 --cpus 2 --kubernetes-version v1.10.3
 minikube addons enable heapster
 minikube addons enable ingress
 
@@ -23,7 +23,7 @@ sleep 30
 ./registry/setup_reg_proxy
 minikube service registry-ui
 
-# These are necessary for jenkins to deploy the hello-kezan app.
+# These are necessary for jenkins to deploy the hello-kenzan app.
 kubectl create sa jenkins
 kubectl create clusterrolebinding jenkins --clusterrole cluster-admin --serviceaccount=jenkins:default
 
