@@ -15,3 +15,10 @@ Docker and VirtualBox are required.  Docker must be running.
 
 After Jenkins in up and running do the first extercise on [Linux.com - Set Up a CI/CD Pipeline with a Jenkins Pod in Kubernetes (Part 2)](https://www.linux.com/blog/learn/chapter/Intro-to-Kubernetes/2017/6/set-cicd-pipeline-jenkins-pod-kubernetes-part-2).
 
+To launch a Rails app, use https://github.com/cody-nivens/rothstock.git in place of the hello-kenzan repo.
+
+Use the following to access the application in minikube.
+```bash
+minikube service railsapp-service
+```
+
