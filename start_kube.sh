@@ -1,6 +1,55 @@
-#!/bin/bash
+#!/bin/bash -e
 
-read -p "Press [Enter] key to stop and delete minikube and install jenkins minikube..."
+randomstring () {
+  COUNT=${1:-10}
+  random_string=`date +%s | sha256sum | base64 | head -c $COUNT`
+}
+
+randomstring 10
+root_pass=$random_string
+
+read -e -p "MySQL root password? [${root_pass}] " password
+if [ ! -z "$password" ] ; then
+  root_pass=$password
+fi
+
+db_user='user'
+read -e -p "MySQL database user name? [${db_user}] " answer
+if [ ! -z "$answer" ] ; then
+  db_user=$answer
+fi
+
+randomstring 10
+db_user_pass=$random_string
+read -e -p "MySQL db_user password? [${db_user_pass}] " password
+if [ ! -z "$password" ] ; then
+  db_user_pass=$password
+fi
+
+db_name='user_database'
+read -e -p "MySQL user database name? [${db_name}] " answer
+if [ ! -z "$answer" ] ; then
+  db_name=$answer
+fi
+
+echo "root_pass=\"${root_pass}\"" >> .kdr_env
+echo "db_user=\"${db_user}\"" >> .kdr_env
+echo "db_user_pass=\"${db_user_pass}\"" >> .kdr_env
+echo "db_name=\"${db_name}\"" >> .kdr_env
+
+while true; do
+    read -e -p "Do you wish to to stop and delete minikube and install jenkins minikube? [yN] " yn
+    case ${yn:0:1} in
+        y|Y )
+            break
+        ;;
+        * )
+            exit
+        ;;
+    esac
+done
+
+#if [ 1 == 0 ] ; then
 minikube stop
 minikube delete
 sudo rm -rf ~/.minikube
@@ -48,6 +97,26 @@ minikube service jenkins --namespace jenkins
 
 cd ..
 
+helm init
+
+kubectl rollout status deployments/tiller-deploy --namespace kube-system
+
+#fi
+helm install --name mariadb \
+  --set rootUser.password=${root_pass},db.user=${db_user},db.name=${db_name},db.password=${db_user_pass} \
+    stable/mariadb
+
+db_url=`echo "mysql2://${db_user}:${db_user_pass}@mariadb-mariadb:3306/${db_name}"|base64`
+
+set +e
+kubectl create secret generic db-root-pass --from-literal=password=${root_pass}
+kubectl create secret generic db-user-pass --from-literal=password=${db_user_pass}
+kubectl create secret generic db-user --from-literal=username=${db_user}
+kubectl create secret generic db-name --from-literal=name=${db_name}
+
+kubectl create secret generic railsapp-secrets --from-literal=secret-key-base=50dae16d7d1403e175ceb2461605b527cf87a5b18479740508395cb3f1947b12b63bad049d7d1545af4dcafa17a329be4d29c18bd63b421515e37b43ea43df64
+
+set -e
 
 echo "Follow the project the linux.com article noted in the README.md file,"
 echo "build and deploy a hello-kenzan application."
@@ -56,3 +125,11 @@ echo "To access it via a web browser, type the following command:"
 echo ""
 echo "minikube service hello-kenzan --namespace jenkins"
 echo ""
+echo "For a Rails application, use: https://github.com/cody-nivens/rothstock.git"
+echo ""
+echo "To access it via a web browser, type the following command:"
+echo ""
+echo "minikube service railsapp-service"
+echo ""
+
+
