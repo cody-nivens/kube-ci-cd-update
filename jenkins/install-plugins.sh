@@ -7,7 +7,8 @@
 
 set -o pipefail
 
-REF_DIR=${REF:-/usr/share/jenkins/ref/plugins}
+#REF_DIR=${REF:-/usr/share/jenkins/ref/plugins}
+REF_DIR=${REF:-/var/lib/jenkins/plugins}
 FAILED="$REF_DIR/failed-plugins.txt"
 
 . /usr/local/bin/jenkins-support
@@ -130,7 +131,8 @@ resolveDependencies() {
 }
 
 bundledPlugins() {
-    local JENKINS_WAR=/usr/share/jenkins/jenkins.war
+    #local JENKINS_WAR=/usr/share/jenkins/jenkins.war
+    local JENKINS_WAR=/jenkins.war
     if [ -f $JENKINS_WAR ]
     then
         TEMP_PLUGIN_DIR=/tmp/plugintemp.$$
@@ -145,7 +147,7 @@ bundledPlugins() {
         done
         rm -fr $TEMP_PLUGIN_DIR
     else
-        rm -f "$TEMP_ALREADY_INSTALLED"
+        #  rm -f "$TEMP_ALREADY_INSTALLED"
         echo "ERROR file not found: $JENKINS_WAR"
         exit 1
     fi
@@ -169,10 +171,11 @@ installedPlugins() {
 
 jenkinsMajorMinorVersion() {
     local JENKINS_WAR
-    JENKINS_WAR=/usr/share/jenkins/jenkins.war
+    #JENKINS_WAR=/usr/share/jenkins/jenkins.war
+    JENKINS_WAR=/jenkins.war
     if [[ -f "$JENKINS_WAR" ]]; then
         local version major minor
-        version="$(java -jar /usr/share/jenkins/jenkins.war --version)"
+        version="$(java -jar /jenkins.war --version)"
         major="$(echo "$version" | cut -d '.' -f 1)"
         minor="$(echo "$version" | cut -d '.' -f 2)"
         echo "$major.$minor"
@@ -217,6 +220,7 @@ main() {
 
     # Check if there's a version-specific update center, which is the case for LTS versions
     jenkinsVersion="$(jenkinsMajorMinorVersion)"
+
     if curl -fsL -o /dev/null "$JENKINS_UC/$jenkinsVersion"; then
         JENKINS_UC_LATEST="$JENKINS_UC/$jenkinsVersion"
         echo "Using version-specific update center: $JENKINS_UC_LATEST..."
