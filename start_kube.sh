@@ -8,6 +8,9 @@ randomstring () {
 randomstring 10
 root_pass=$random_string
 
+echo ""
+echo "Please enter or accept the following passwords for using the Rails App application"
+echo ""
 read -e -p "MySQL root password? [${root_pass}] " password
 if [ ! -z "$password" ] ; then
   root_pass=$password
@@ -32,11 +35,6 @@ if [ ! -z "$answer" ] ; then
   db_name=$answer
 fi
 
-echo "root_pass=\"${root_pass}\"" >> .kdr_env
-echo "db_user=\"${db_user}\"" >> .kdr_env
-echo "db_user_pass=\"${db_user_pass}\"" >> .kdr_env
-echo "db_name=\"${db_name}\"" >> .kdr_env
-
 while true; do
     read -e -p "Do you wish to to stop and delete minikube and install jenkins minikube? [yN] " yn
     case ${yn:0:1} in
@@ -48,6 +46,12 @@ while true; do
         ;;
     esac
 done
+
+rm -f .kdr_env
+echo "root_pass=\"${root_pass}\"" >> .kdr_env
+echo "db_user=\"${db_user}\"" >> .kdr_env
+echo "db_user_pass=\"${db_user_pass}\"" >> .kdr_env
+echo "db_name=\"${db_name}\"" >> .kdr_env
 
 #if [ 1 == 0 ] ; then
 minikube stop
