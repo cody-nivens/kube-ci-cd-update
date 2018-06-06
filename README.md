@@ -22,3 +22,5 @@ Use the following to access the application in minikube.
 minikube service railsapp-service
 ```
 
+To support the Rails server, two helm charts are started in the db-apps namespace:  mariadb and phpmyadmin.
+

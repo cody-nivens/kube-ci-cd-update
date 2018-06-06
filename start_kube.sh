@@ -47,13 +47,13 @@ while true; do
     esac
 done
 
+#if [ 1 == 0 ] ; then
 rm -f .kdr_env
 echo "root_pass=\"${root_pass}\"" >> .kdr_env
 echo "db_user=\"${db_user}\"" >> .kdr_env
 echo "db_user_pass=\"${db_user_pass}\"" >> .kdr_env
 echo "db_name=\"${db_name}\"" >> .kdr_env
 
-#if [ 1 == 0 ] ; then
 minikube stop
 minikube delete
 sudo rm -rf ~/.minikube
@@ -105,23 +105,25 @@ helm init
 
 kubectl rollout status deployments/tiller-deploy --namespace kube-system
 
-#fi
-helm install --name mariadb \
+helm install --name mariadb --namespace db-apps \
   --set rootUser.password=${root_pass},db.user=${db_user},db.name=${db_name},db.password=${db_user_pass} \
     stable/mariadb
 
 db_url=`echo "mysql2://${db_user}:${db_user_pass}@mariadb-mariadb:3306/${db_name}"|base64`
 
 set +e
-kubectl create secret generic db-root-pass --from-literal=password=${root_pass}
-kubectl create secret generic db-user-pass --from-literal=password=${db_user_pass}
-kubectl create secret generic db-user --from-literal=username=${db_user}
-kubectl create secret generic db-name --from-literal=name=${db_name}
+kubectl create secret generic db-root-pass --namespace db-apps --from-literal=password=${root_pass}
+kubectl create secret generic db-user-pass --namespace db-apps --from-literal=password=${db_user_pass}
+kubectl create secret generic db-user --namespace db-apps --from-literal=username=${db_user}
+kubectl create secret generic db-name --namespace db-apps --from-literal=name=${db_name}
 
 kubectl create secret generic railsapp-secrets --from-literal=secret-key-base=50dae16d7d1403e175ceb2461605b527cf87a5b18479740508395cb3f1947b12b63bad049d7d1545af4dcafa17a329be4d29c18bd63b421515e37b43ea43df64
 
+helm install --name phpmyadmin --namespace db-apps --set db.host=mariadb-mariadb,db.port=3306,probesEnabled=false stable/phpmyadmin
+
 set -e
 
+#fi
 echo "Follow the project the linux.com article noted in the README.md file,"
 echo "build and deploy a hello-kenzan application."
 echo ""
@@ -135,5 +137,10 @@ echo "To access it via a web browser, type the following command:"
 echo ""
 echo "minikube service railsapp-service"
 echo ""
-
-
+echo "To access phpmyadmin, you will need to do the following:"
+echo ""
+echo 'export POD_NAME=$(kubectl get pods --namespace db-apps -l "app=phpmyadmin,release=phpmyadmin" -o jsonpath="{.items[0].metadata.name}")'
+echo 'kubectl port-forward $POD_NAME 8080:80'
+echo ""
+echo "phpmyadmin will only work from http://127.0.0.1"
+echo "To use:  http://127.0.0.1:8080"
