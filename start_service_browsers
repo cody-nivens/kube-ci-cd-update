@@ -4,6 +4,5 @@
 minikube service kubernetes-dashboard --namespace kube-system
 minikube service registry-ui
 minikube service jenkins --namespace jenkins
-minikube service hello-kenzan --namespace jenkins
-minikube service grafana --namespace monitoring
+minikube service monitoring-grafana --namespace kube-system
 
