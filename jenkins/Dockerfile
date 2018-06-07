@@ -28,8 +28,7 @@ RUN set -x \
     && rm -rf /var/lib/apt/lists/* \
     && [ "$JAVA_HOME" = "$(docker-java-home)" ]
 RUN /var/lib/dpkg/info/ca-certificates-java.postinst configure
-RUN apt-get update
-RUN apt-get install -y wget git curl
+
 RUN wget http://mirrors.jenkins.io/war-stable/latest/jenkins.war
 RUN wget -qO- https://get.docker.com/ | sh
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
@@ -46,6 +45,6 @@ COPY jenkins-support /usr/local/bin/
 COPY plugins.txt /var/lib/jenkins/plugins.txt
 COPY install-plugins.sh /usr/local/bin/
 
-#RUN /usr/local/bin/install-plugins.sh < /var/lib/jenkins/plugins.txt
+RUN /usr/local/bin/install-plugins.sh < /var/lib/jenkins/plugins.txt
 
 CMD ["/usr/bin/java", "-jar", "jenkins.war"]
