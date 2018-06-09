@@ -11,7 +11,7 @@ root_pass=$random_string
 echo ""
 echo "Please enter or accept the following passwords for using the Rails App application"
 echo ""
-read -e -p "MySQL root password? [${root_pass}] " password
+read -e -p "MySQL root password? [<random 10 chars>] " password
 if [ ! -z "$password" ] ; then
   root_pass=$password
 fi
@@ -24,7 +24,7 @@ fi
 
 randomstring 10
 db_user_pass=$random_string
-read -e -p "MySQL db_user password? [${db_user_pass}] " password
+read -e -p "MySQL db_user password? [<random 10 chars>] " password
 if [ ! -z "$password" ] ; then
   db_user_pass=$password
 fi
@@ -47,7 +47,6 @@ while true; do
     esac
 done
 
-#if [ 1 == 0 ] ; then
 rm -f .kdr_env
 echo "root_pass=\"${root_pass}\"" >> .kdr_env
 echo "db_user=\"${db_user}\"" >> .kdr_env
@@ -62,19 +61,23 @@ minikube start --memory 4000 --cpus 2 --kubernetes-version v1.10.3
 minikube addons enable heapster
 minikube addons enable ingress
 
-sleep 30
-minikube service kubernetes-dashboard --namespace kube-system
-
 # Setup registry
 kubectl apply -f registry/registry.yml
 kubectl rollout status deployments/registry
 
 # Wait for registry to finish initializing
 sleep 30
-
 # Setup proxy to registry
 ./registry/setup_reg_proxy
+
+#if [ 1 == 0 ] ; then
+sleep 5
+minikube service kubernetes-dashboard --namespace kube-system
+sleep 5
+minikube service monitoring-grafana --namespace kube-system
+sleep 5
 minikube service registry-ui
+#fi
 
 # These are necessary for jenkins to deploy the hello-kenzan app.
 kubectl create sa jenkins
@@ -109,21 +112,30 @@ helm install --name mariadb --namespace db-apps \
   --set rootUser.password=${root_pass},db.user=${db_user},db.name=${db_name},db.password=${db_user_pass} \
     stable/mariadb
 
-db_url=`echo "mysql2://${db_user}:${db_user_pass}@mariadb-mariadb:3306/${db_name}"|base64`
+db_url=`echo "mysql2://${db_user}:${db_user_pass}@mariadb-mariadb.db-apps.svc.cluster.local:3306/${db_name}"|base64`
 
+# Secrets must be in each environment to be useful
+#
 set +e
 kubectl create secret generic db-root-pass --namespace db-apps --from-literal=password=${root_pass}
 kubectl create secret generic db-user-pass --namespace db-apps --from-literal=password=${db_user_pass}
 kubectl create secret generic db-user --namespace db-apps --from-literal=username=${db_user}
 kubectl create secret generic db-name --namespace db-apps --from-literal=name=${db_name}
 
+kubectl create secret generic db-root-pass --namespace default --from-literal=password=${root_pass}
+kubectl create secret generic db-user-pass --namespace default --from-literal=password=${db_user_pass}
+kubectl create secret generic db-user --namespace default --from-literal=username=${db_user}
+kubectl create secret generic db-name --namespace default --from-literal=name=${db_name}
+
 kubectl create secret generic railsapp-secrets --from-literal=secret-key-base=50dae16d7d1403e175ceb2461605b527cf87a5b18479740508395cb3f1947b12b63bad049d7d1545af4dcafa17a329be4d29c18bd63b421515e37b43ea43df64
 
-helm install --name phpmyadmin --namespace db-apps --set db.host=mariadb-mariadb,db.port=3306,probesEnabled=false stable/phpmyadmin
+# phpmyadmin for creating databases and users
+#
+db_host="mariadb-mariadb.db-apps.svc.cluster.local"
+helm install --name phpmyadmin --namespace db-apps --set db.host=${db_host},db.port=3306,probesEnabled=false stable/phpmyadmin
 
 set -e
 
-#fi
 echo "Follow the project the linux.com article noted in the README.md file,"
 echo "build and deploy a hello-kenzan application."
 echo ""
@@ -140,7 +152,7 @@ echo ""
 echo "To access phpmyadmin, you will need to do the following:"
 echo ""
 echo 'export POD_NAME=$(kubectl get pods --namespace db-apps -l "app=phpmyadmin,release=phpmyadmin" -o jsonpath="{.items[0].metadata.name}")'
-echo 'kubectl port-forward $POD_NAME 8080:80'
+echo 'kubectl port-forward --namespace db-apps $POD_NAME 8080:80'
 echo ""
 echo "phpmyadmin will only work from http://127.0.0.1"
 echo "To use:  http://127.0.0.1:8080"
