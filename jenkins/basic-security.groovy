@@ -10,6 +10,12 @@ println "--> creating local user 'admin'"
 def user = instance.getSecurityRealm().createAccount('admin', 'someAdminPass')
 user.save()
 
+def hudsonRealm = new HudsonPrivateSecurityRealm(false)
+
+hudsonRealm.createAccount("admin_name","admin_password")
+instance.setSecurityRealm(hudsonRealm)
+instance.save()
+
 def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
 strategy.setAllowAnonymousRead(false)
 instance.setAuthorizationStrategy(strategy)
@@ -20,3 +26,6 @@ if (!instance.installState.isSetupComplete()) {
 }
 
 instance.save()
+
+
+

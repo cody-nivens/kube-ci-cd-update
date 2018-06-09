@@ -29,22 +29,36 @@ RUN set -x \
     && [ "$JAVA_HOME" = "$(docker-java-home)" ]
 RUN /var/lib/dpkg/info/ca-certificates-java.postinst configure
 
+# Get jenkins
 RUN wget http://mirrors.jenkins.io/war-stable/latest/jenkins.war
+
+COPY jenkins-cli.jar /root/
+# Get docker
 RUN wget -qO- https://get.docker.com/ | sh
+
+# Get kubctl
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
 RUN chmod +x kubectl
 RUN mv ./kubectl /usr/local/bin/kubectl
 
-RUN mkdir -p /var/lib/jenkins/init.groovy.d
-COPY basic-security.groovy /var/lib/jenkins/init.groovy.d/basic-security.groovy
+ENV JENKINS_USER admin
+ENV JENKINS_PASS admin
 
-## In case you are running as root
-#RUN chown -R jenkins:jenkins /var/lib/jenkins/init.groovy.d/
+RUN mkdir -p /usr/share/jenkins/ref/init.groovy.d/
+COPY executors.groovy /usr/share/jenkins/ref/init.groovy.d/
+
+#COPY default-user.groovy /usr/share/jenkins/ref/init.groovy.d/
+COPY security.groovy /usr/share/jenkins/ref/init.groovy.d/
 
 COPY jenkins-support /usr/local/bin/
-COPY plugins.txt /var/lib/jenkins/plugins.txt
 COPY install-plugins.sh /usr/local/bin/
+COPY plugins.txt /var/lib/jenkins/plugins.txt
 
 RUN /usr/local/bin/install-plugins.sh < /var/lib/jenkins/plugins.txt
 
-CMD ["/usr/bin/java", "-jar", "jenkins.war"]
+RUN echo 2.0 > /root/.jenkins/jenkins.install.UpgradeWizard.state
+
+
+COPY cmd_script.sh /usr/local/bin/
+
+CMD ["/usr/local/bin/cmd_script.sh" ]
