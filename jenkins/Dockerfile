@@ -32,7 +32,6 @@ RUN /var/lib/dpkg/info/ca-certificates-java.postinst configure
 # Get jenkins
 RUN wget http://mirrors.jenkins.io/war-stable/latest/jenkins.war
 
-COPY jenkins-cli.jar /root/
 # Get docker
 RUN wget -qO- https://get.docker.com/ | sh
 
@@ -56,7 +55,7 @@ COPY plugins.txt /var/lib/jenkins/plugins.txt
 
 RUN /usr/local/bin/install-plugins.sh < /var/lib/jenkins/plugins.txt
 
-RUN echo 2.0 > /root/.jenkins/jenkins.install.UpgradeWizard.state
+# RUN echo 2.0 > /root/.jenkins/jenkins.install.UpgradeWizard.state
 
 
 COPY cmd_script.sh /usr/local/bin/
