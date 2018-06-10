@@ -40,24 +40,22 @@ RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s
 RUN chmod +x kubectl
 RUN mv ./kubectl /usr/local/bin/kubectl
 
+# Add user, security and number of executors
 ENV JENKINS_USER admin
 ENV JENKINS_PASS admin
 
 RUN mkdir -p /usr/share/jenkins/ref/init.groovy.d/
 COPY executors.groovy /usr/share/jenkins/ref/init.groovy.d/
-
-#COPY default-user.groovy /usr/share/jenkins/ref/init.groovy.d/
 COPY security.groovy /usr/share/jenkins/ref/init.groovy.d/
 
+# Preload plugins
 COPY jenkins-support /usr/local/bin/
 COPY install-plugins.sh /usr/local/bin/
 COPY plugins.txt /var/lib/jenkins/plugins.txt
 
 RUN /usr/local/bin/install-plugins.sh < /var/lib/jenkins/plugins.txt
 
-# RUN echo 2.0 > /root/.jenkins/jenkins.install.UpgradeWizard.state
+# Add script which works for initial setup
+COPY run_jenkins.sh /usr/local/bin/
 
-
-COPY cmd_script.sh /usr/local/bin/
-
-CMD ["/usr/local/bin/cmd_script.sh" ]
+CMD ["/usr/local/bin/run_jenkins.sh" ]
