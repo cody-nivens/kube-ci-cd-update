@@ -9,8 +9,7 @@ if [ ! -e /root/.jenkins/init.groovy.d ] ; then
   cp -a /usr/share/jenkins/ref/plugins /root/.jenkins
   cmd='/usr/bin/java -Djenkins.install.runSetupWizard=false -jar jenkins.war'
 else
-   #rm -f /root/.jenkins/init.groovy.d/*
+   rm -f /root/.jenkins/init.groovy.d/*
    cmd='/usr/bin/java -jar jenkins.war'
 fi
-  cmd='/usr/bin/java -Djenkins.install.runSetupWizard=false -jar jenkins.war'
 exec $cmd
