@@ -8,22 +8,25 @@ def env = System.getenv()
 
 def instance = Jenkins.getInstance()
 
-println "--> creating local user ''"
 
-def hudsonRealm = new HudsonPrivateSecurityRealm(false)
-hudsonRealm.createAccount(env.JENKINS_USER, env.JENKINS_PASS)
-instance.setSecurityRealm(hudsonRealm)
+def user = hudson.model.User.get(env.JENKINS_USER, false)
 
-def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
-instance.setAuthorizationStrategy(strategy)
-instance.save()
+if(user == null) {
+  println "--> creating local user ''"
+  def hudsonRealm = new HudsonPrivateSecurityRealm(false)
+  hudsonRealm.createAccount(env.JENKINS_USER, env.JENKINS_PASS)
+  instance.setSecurityRealm(hudsonRealm)
 
-Jenkins.instance.getInjector().getInstance(AdminWhitelistRule.class).setMasterKillSwitch(false)
+  def strategy = new FullControlOnceLoggedInAuthorizationStrategy()
+  instance.setAuthorizationStrategy(strategy)
+  instance.save()
 
-if (!instance.installState.isSetupComplete()) {
-  println '--> Neutering SetupWizard'
-  InstallState.INITIAL_SETUP_COMPLETED.initializeState()
+  Jenkins.instance.getInjector().getInstance(AdminWhitelistRule.class).setMasterKillSwitch(false)
+
+  if (!instance.installState.isSetupComplete()) {
+    println '--> Neutering SetupWizard'
+    InstallState.INITIAL_SETUP_COMPLETED.initializeState()
+  }
+
+  instance.save()
 }
-
-instance.save()
-
