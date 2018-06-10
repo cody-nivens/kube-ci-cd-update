@@ -1,5 +1,38 @@
 #!/bin/bash -e
 
+function usage()
+{
+    echo "if this was a real script you would see something useful here"
+    echo ""
+    echo "./simple_args_parsing.sh"
+    echo "\t-h --help"
+    echo "\t--openall"
+    echo ""
+}
+
+while [ "$1" != "" ]; do
+    PARAM=`echo $1 | awk -F= '{print $1}'`
+    VALUE=`echo $1 | awk -F= '{print $2}'`
+    case $PARAM in
+        -h | --help)
+            usage
+            exit
+            ;;
+        --environment)
+            ENVIRONMENT=$VALUE
+            ;;
+        --openall)
+            OPEN_ALL=1
+            ;;
+        *)
+            echo "ERROR: unknown parameter \"$PARAM\""
+            usage
+            exit 1
+            ;;
+    esac
+    shift
+done
+
 randomstring () {
   COUNT=${1:-10}
   random_string=`date +%s | sha256sum | base64 | head -c $COUNT`
@@ -35,6 +68,7 @@ if [ ! -z "$answer" ] ; then
   db_name=$answer
 fi
 
+echo ""
 while true; do
     read -e -p "Do you wish to to stop and delete minikube and install jenkins minikube? [yN] " yn
     case ${yn:0:1} in
@@ -47,6 +81,7 @@ while true; do
     esac
 done
 
+# Keep the keys to the kingdom
 rm -f .kdr_env
 echo "root_pass=\"${root_pass}\"" >> .kdr_env
 echo "db_user=\"${db_user}\"" >> .kdr_env
@@ -70,15 +105,6 @@ sleep 30
 # Setup proxy to registry
 ./registry/setup_reg_proxy
 
-#if [ 1 == 0 ] ; then
-sleep 5
-minikube service kubernetes-dashboard --namespace kube-system
-sleep 5
-minikube service monitoring-grafana --namespace kube-system
-sleep 5
-minikube service registry-ui
-#fi
-
 # These are necessary for jenkins to deploy the hello-kenzan app.
 kubectl create sa jenkins
 kubectl create clusterrolebinding jenkins --clusterrole cluster-admin --serviceaccount=jenkins:default
@@ -91,19 +117,25 @@ cd jenkins
 sleep 30
 
 # Add newly built jenkins to cluster
-
 kubectl apply -f jenkins.yml
 kubectl rollout status deployments/jenkins --namespace jenkins
 
 # Wait for jenkins to initialize
-sleep 30
+if [ "$OPEN_ALL" != "" ] ; then
+sleep 5
+minikube service kubernetes-dashboard --namespace kube-system
+sleep 5
+minikube service monitoring-grafana --namespace kube-system
+sleep 5
+minikube service registry-ui
+fi
+sleep 5
 minikube service jenkins --namespace jenkins
-
-# Get initial password
-./get_jenkins_passwd.sh
 
 cd ..
 
+# Helm
+#
 helm init
 
 kubectl rollout status deployments/tiller-deploy --namespace kube-system
@@ -112,7 +144,11 @@ helm install --name mariadb --namespace db-apps \
   --set rootUser.password=${root_pass},db.user=${db_user},db.name=${db_name},db.password=${db_user_pass} \
     stable/mariadb
 
-db_url=`echo "mysql2://${db_user}:${db_user_pass}@mariadb-mariadb.db-apps.svc.cluster.local:3306/${db_name}"|base64`
+# phpmyadmin for creating databases and users
+#
+db_host="mariadb-mariadb.db-apps.svc.cluster.local"
+helm install --name phpmyadmin --namespace db-apps --set db.host=${db_host},db.port=3306,probesEnabled=false stable/phpmyadmin
+
 
 # Secrets must be in each environment to be useful
 #
@@ -128,11 +164,6 @@ kubectl create secret generic db-user --namespace default --from-literal=usernam
 kubectl create secret generic db-name --namespace default --from-literal=name=${db_name}
 
 kubectl create secret generic railsapp-secrets --from-literal=secret-key-base=50dae16d7d1403e175ceb2461605b527cf87a5b18479740508395cb3f1947b12b63bad049d7d1545af4dcafa17a329be4d29c18bd63b421515e37b43ea43df64
-
-# phpmyadmin for creating databases and users
-#
-db_host="mariadb-mariadb.db-apps.svc.cluster.local"
-helm install --name phpmyadmin --namespace db-apps --set db.host=${db_host},db.port=3306,probesEnabled=false stable/phpmyadmin
 
 set -e
 
