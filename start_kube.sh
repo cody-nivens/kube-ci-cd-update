@@ -1,5 +1,10 @@
 #!/bin/bash -e
 
+KUBE_VERSION="v1.10.4"
+KUBE_MEMORY=4000
+KUBE_CPUS=2
+
+RAILS_KEY="50dae16d7d1403e175ceb2461605b527cf87a5b18479740508395cb3f1947b12b63bad049d7d1545af4dcafa17a329be4d29c18bd63b421515e37b43ea43df64"
 function usage()
 {
     echo "if this was a real script you would see something useful here"
@@ -92,7 +97,7 @@ minikube stop
 minikube delete
 sudo rm -rf ~/.minikube
 sudo rm -rf ~/.kube
-minikube start --memory 4000 --cpus 2 --kubernetes-version v1.10.3
+minikube start --memory ${KUBE_MEMORY} --cpus ${KUBE_CPUS} --kubernetes-version ${KUBE_VERSION}
 minikube addons enable heapster
 minikube addons enable ingress
 
@@ -134,6 +139,9 @@ minikube service jenkins --namespace jenkins
 
 cd ..
 
+# Add test namespace
+kubectl apply --namespace app-test -f app-test-namespace.yaml
+
 # Helm
 #
 helm init
@@ -163,8 +171,13 @@ kubectl create secret generic db-user-pass --namespace default --from-literal=pa
 kubectl create secret generic db-user --namespace default --from-literal=username=${db_user}
 kubectl create secret generic db-name --namespace default --from-literal=name=${db_name}
 
-kubectl create secret generic railsapp-secrets --from-literal=secret-key-base=50dae16d7d1403e175ceb2461605b527cf87a5b18479740508395cb3f1947b12b63bad049d7d1545af4dcafa17a329be4d29c18bd63b421515e37b43ea43df64
+kubectl create secret generic db-root-pass --namespace app-test --from-literal=password=${root_pass}
+kubectl create secret generic db-user-pass --namespace app-test --from-literal=password=${db_user_pass}
+kubectl create secret generic db-user --namespace app-test --from-literal=username=${db_user}
+kubectl create secret generic db-name --namespace app-test --from-literal=name=${db_name}_test
 
+kubectl create secret generic railsapp-secrets --namespace default --from-literal=secret-key-base=${RAILS_KEY}
+kubectl create secret generic railsapp-secrets --namespace app-test --from-literal=secret-key-base=${RAILS_KEY}
 set -e
 
 echo "Follow the project the linux.com article noted in the README.md file,"
