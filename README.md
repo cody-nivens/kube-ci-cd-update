@@ -14,10 +14,16 @@ Ideally, to properly run minikube needs 8GB of ram and 2 cpus.  The host machine
 The start_kube.sh uses 4GB and 2 CPUs which brings up a cluster capible of handling itself, Jenkins, the registry and an application.  More than that requires more memory.
 
 ---
-After Jenkins in up and running, doing the first extercise on [Linux.com - Set Up a CI/CD Pipeline with a Jenkins Pod in Kubernetes (Part 2)](https://www.linux.com/blog/learn/chapter/Intro-to-Kubernetes/2017/6/set-cicd-pipeline-jenkins-pod-kubernetes-part-2) is possible.
+After Jenkins in up and running, doing the first extercise on [Linux.com - Set Up a CI/CD Pipeline with a Jenkins Pod in Kubernetes (Part 2)](https://www.linux.com/blog/learn/chapter/Intro-to-Kubernetes/2017/6/set-cicd-pipeline-jenkins-pod-kubernetes-part-2) is possible.  
 
-An example of a Rails application is [RothStocks](https://github.com/cody-nivens/rothstock.git) which I created to illustrate which a Rails environment is handled with jobs to perform rake commands on the database.
+* [https://github.com/cody-nivens/kubernetes-ci-cd.git](https://github.com/cody-nivens/kubernetes-ci-cd.git) -- A clone of [Linux.com - Set Up a CI/CD Pipeline with a Jenkins Pod in Kubernetes (Part 2)](https://www.linux.com/blog/learn/chapter/Intro-to-Kubernetes/2017/6/set-cicd-pipeline-jenkins-pod-kubernetes-part-2) slightly modified :).
 
+* [https://github.com/cody-nivens/rothstock.git](https://github.com/cody-nivens/rothstock.git) -- An example of a Rails application is what I created to illustrate how a Rails environment is handled with jobs to perform rake commands on the database.
+
+To setup for a Rails application, a setup script needs to be run.  This script starts helm on the cluster and uses helm to install MariaDB and PHPMyAdmin as well as environment variables for running the application, a job to initialize the database and a job to run tests. 
+```
+./railsapp/start_railsapp.sh
+```
 Use the following to access the application in minikube.
 ```bash
 minikube service railsapp-service
