@@ -1,8 +1,7 @@
 #!/bin/bash
 
 
-minikube service kubernetes-dashboard --namespace kube-system
-minikube service registry-ui
-minikube service jenkins --namespace jenkins
-minikube service monitoring-grafana --namespace kube-system
-
+minikube service kubernetes-dashboard --namespace kube-system --url
+minikube service registry-ui --url
+minikube service jenkins --namespace jenkins --url
+minikube service monitoring-grafana --namespace kube-system --url
