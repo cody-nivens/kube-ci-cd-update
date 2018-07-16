@@ -74,11 +74,11 @@ if [ ! -z "$password" ] ; then
 fi
 
 #randomstring 10
-#redis_user_pass=$random_string
-#read -e -p "MySQL redis_user password? [<random 10 chars>] " password
-#if [ ! -z "$password" ] ; then
-#  redis_user_pass=$password
-#fi
+redis_user_pass=$random_string
+read -e -p "Redis_user password? [<random 10 chars>] " password
+if [ ! -z "$password" ] ; then
+  redis_user_pass=$password
+fi
 
 echo ""
 while true; do
@@ -98,7 +98,7 @@ echo "root_pass=\"${root_pass}\""       > .kdr_env
 echo "db_user=\"${db_user}\""           >> .kdr_env
 echo "db_user_pass=\"${db_user_pass}\"" >> .kdr_env
 echo "db_name=\"${db_name}\""           >> .kdr_env
-#echo "redis_user_pass=\"${redis_user_pass}\"" >> .kdr_env
+echo "redis_user_pass=\"${redis_user_pass}\"" >> .kdr_env
 
 # Add namespaces
 kubectl apply --namespace app-test -f db-apps-namespace.yaml
@@ -122,10 +122,10 @@ helm install --name phpmyadmin --namespace db-apps --set db.host=${db_host},db.p
 
 # Start redis - used by sidekiq
 #
-#helm install --name redis \
-#  --set password=${redis_user_pass} \
-#  --set persistence.enabled=false \
-#    stable/redis
+helm install --name redis \
+  --set password=${redis_user_pass} \
+  --set persistence.enabled=false \
+    stable/redis
 
 # Secrets must be in each environment to be useful
 #
