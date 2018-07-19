@@ -80,6 +80,13 @@ if [ ! -z "$password" ] ; then
   redis_user_pass=$password
 fi
 
+#randomstring 10
+test_redis_user_pass=$random_string
+read -e -p "Test Redis_user password? [<random 10 chars>] " password
+if [ ! -z "$password" ] ; then
+  test_redis_user_pass=$password
+fi
+
 echo ""
 while true; do
     read -e -p "Do you wish to install helm and install mariadb and phpmyadmin? [yN] " yn
@@ -99,6 +106,7 @@ echo "db_user=\"${db_user}\""           >> .kdr_env
 echo "db_user_pass=\"${db_user_pass}\"" >> .kdr_env
 echo "db_name=\"${db_name}\""           >> .kdr_env
 echo "redis_user_pass=\"${redis_user_pass}\"" >> .kdr_env
+echo "test_redis_user_pass=\"${test_redis_user_pass}\"" >> .kdr_env
 
 # Add namespaces
 kubectl apply --namespace app-test -f db-apps-namespace.yaml
@@ -120,10 +128,16 @@ helm install --name mariadb --namespace db-apps \
 db_host="mariadb-mariadb.db-apps.svc.cluster.local"
 helm install --name phpmyadmin --namespace db-apps --set db.host=${db_host},db.port=3306,probesEnabled=false stable/phpmyadmin
 
-# Start redis - used by sidekiq
+# Start redis
 #
 helm install --name redis \
   --set password=${redis_user_pass} \
+  --set persistence.enabled=false \
+    stable/redis
+
+helm install --name redis-test \
+  --namespace app-test \
+  --set password=${test_redis_user_pass} \
   --set persistence.enabled=false \
     stable/redis
 
@@ -147,6 +161,8 @@ kubectl create secret generic railsapp-secrets --namespace app-test --from-liter
 kubectl rollout status statefulset/mariadb-mariadb-master --namespace db-apps
 
 set -e
+
+sleep 30
 
 ./rails_recreate_test
 
