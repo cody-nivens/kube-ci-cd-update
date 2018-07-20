@@ -51,7 +51,9 @@ kubectl apply -f registry/registry.yml
 kubectl rollout status deployments/registry
 
 # Wait for registry to finish initializing
-sleep 30
+until kubectl get pod \$(kubectl get pods -l 'app=registry' -o jsonpath='{.items[0].metadata.name}') -o jsonpath='{.status.conditions[?(@.type==\"Ready\")].status}' | grep True ; do
+    sleep 15
+done
 # Setup proxy to registry
 ./registry/setup_reg_proxy
 
