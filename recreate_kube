@@ -1,10 +1,11 @@
 #!/bin/bash -e
 
-KUBE_VERSION="v1.11.1"
-#KUBE_VERSION="v1.11.1-beta.0"
-#KUBE_VERSION="v1.10.5"
-KUBE_MEMORY=4000
+KUBE_VERSION="v1.11.3"
+#KUBE_VERSION="v1.12.0"
+KUBE_MEMORY=12000
 KUBE_CPUS=2
+MINIKUBE_VERSION='v0.28.1'
+#MINIKUBE_VERSION='v0.29.0'
 
 function usage()
 {
@@ -49,14 +50,16 @@ while true; do
     esac
 done
 
-minikube stop
-minikube delete
+#minikube stop
+#minikube delete
+sudo cp -f ~/.minikube/cache/iso/minikube-${MINIKUBE_VERSION}.iso .
 sudo rm -rf ~/.minikube
+sudo mkdir -p ~/.minikube/cache/iso/
+sudo cp minikube-${MINIKUBE_VERSION}.iso ~/.minikube/cache/iso/
+sudo chmod 600 ~/.minikube/cache/iso/minikube-${MINIKUBE_VERSION}.iso
 sudo rm -rf ~/.kube
 
 # Start Kubernetes using minikube and add useful items
 minikube start --memory ${KUBE_MEMORY} --cpus ${KUBE_CPUS} --kubernetes-version ${KUBE_VERSION}
-#exit
 
-#minikube addons enable heapster
 minikube addons enable ingress
