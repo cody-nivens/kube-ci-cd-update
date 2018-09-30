@@ -1,9 +1,9 @@
 #!/bin/bash -e
 
-KUBE_VERSION="v1.11.1"
+KUBE_VERSION="v1.11.3"
 #KUBE_VERSION="v1.11.1-beta.0"
 #KUBE_VERSION="v1.10.5"
-KUBE_MEMORY=4000
+KUBE_MEMORY=12000
 KUBE_CPUS=2
 
 function usage()
