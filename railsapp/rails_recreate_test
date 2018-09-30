@@ -9,7 +9,6 @@ db_host="mariadb-mariadb.db-apps.svc.cluster.local"
 # Mariadb is like a great uncle trying to wake up in the morning.  Need to be polite and give time. 
 mariadb_ip=$(kubectl --namespace db-apps get service mariadb-mariadb -o jsonpath='{@.spec.clusterIP}')
 
-
 # Stop the client as it is no longer needed
 kubectl delete pod mariadb-mariadb-client --namespace db-apps
 
@@ -28,5 +27,10 @@ done
 # Stop the client as it is no longer needed
 kubectl delete pod mariadb-mariadb-client --namespace db-apps
 
-set -e
+sleep 15
 
+# Add timezone info for Groupdate gem
+kubectl run mariadb-mariadb-client --image  ${MARIADB_IMAGE} --namespace db-apps --restart=Never -- bash -c "mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -h ${db_host} -uroot -p${root_pass} mysql"
+
+
+set -e
