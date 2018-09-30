@@ -114,9 +114,6 @@ kubectl apply --namespace app-test -f app-test-namespace.yaml
 
 # Helm
 #
-helm init
-
-kubectl rollout status deployments/tiller-deploy --namespace kube-system
 
 # MariaDB for database for Rails apps
 helm install --name mariadb --namespace db-apps \
@@ -150,8 +147,10 @@ for namespace in default db-apps app-test ; do
     kubectl create secret generic db-user --namespace ${namespace} --from-literal=username=${db_user}
     if [ "${namespace}" == "app-test" ] ; then
         kubectl create secret generic db-name --namespace ${namespace} --from-literal=name=${db_name}_test
+	kubectl create secret generic redis-test --namespace ${namespace} --from-literal=redis_password=${test_redis_user_pass}
     else
         kubectl create secret generic db-name --namespace ${namespace} --from-literal=name=${db_name}
+	kubectl create secret generic redis --namespace ${namespace} --from-literal=password=${redis_user_password}
     fi
 done
 
