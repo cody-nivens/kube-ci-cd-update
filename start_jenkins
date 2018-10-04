@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# These are necessary for jenkins to deploy the hello-kenzan app.
+kubectl create sa jenkins
+kubectl create clusterrolebinding jenkins --clusterrole cluster-admin --serviceaccount=jenkins:default
+
+# Build jenkins and push to registry
+cd jenkins
+./build_jenkins.sh
+
+# Wait for registry to finish with jenkins
+sleep 30
+
+# Add newly built jenkins to cluster
+kubectl apply -f jenkins.yaml
+kubectl rollout status deployments/jenkins --namespace jenkins
