@@ -112,31 +112,10 @@ echo "test_redis_user_pass=\"${test_redis_user_pass}\"" >> .kdr_env
 kubectl apply --namespace app-test -f db-apps-namespace.yaml
 kubectl apply --namespace app-test -f app-test-namespace.yaml
 
-# Helm
-#
 
-# MariaDB for database for Rails apps
-helm install --name mariadb --namespace db-apps \
-  --set rootUser.password=${root_pass},db.user=${db_user},db.name=${db_name},db.password=${db_user_pass} \
-    stable/mariadb
+./start_mariadb
 
-# phpmyadmin for creating databases and users
-#
-db_host="mariadb-mariadb.db-apps.svc.cluster.local"
-helm install --name phpmyadmin --namespace db-apps --set db.host=${db_host},db.port=3306,probesEnabled=false stable/phpmyadmin
-
-# Start redis
-#
-helm install --name redis \
-  --set password=${redis_user_pass} \
-  --set persistence.enabled=false \
-    stable/redis
-
-helm install --name redis-test \
-  --namespace app-test \
-  --set password=${test_redis_user_pass} \
-  --set persistence.enabled=false \
-    stable/redis
+./start_redis
 
 # Secrets must be in each environment to be useful
 #

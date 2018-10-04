@@ -27,10 +27,4 @@ done
 # Stop the client as it is no longer needed
 kubectl delete pod mariadb-mariadb-client --namespace db-apps
 
-sleep 15
-
-# Add timezone info for Groupdate gem
-kubectl run mariadb-mariadb-client --image  ${MARIADB_IMAGE} --namespace db-apps --restart=Never -- bash -c "mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -h ${db_host} -uroot -p${root_pass} mysql"
-
-
 set -e

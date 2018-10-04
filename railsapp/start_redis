@@ -1,0 +1,19 @@
+#!/bin/bash
+
+set +e
+. ./.kdr_env
+
+# Start redis
+#
+helm install --name redis \
+  --set password=${redis_user_pass} \
+  --set persistence.enabled=false \
+    stable/redis
+
+helm install --name redis-test \
+  --namespace app-test \
+  --set password=${test_redis_user_pass} \
+  --set persistence.enabled=false \
+    stable/redis
+
+set -e
