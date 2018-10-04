@@ -66,6 +66,7 @@ spec:
     spec:
       containers:
       - image: 127.0.0.1:30400/jenkins:latest
+        imagePullPolicy: Always
         name: jenkins
         securityContext:
           privileged: true
