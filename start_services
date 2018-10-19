@@ -1,8 +1,10 @@
 #!/bin/bash
 
-
+echo "Dashboard"
 minikube service kubernetes-dashboard --namespace kube-system --url
+echo "Registry"
 minikube service registry-ui --url
+echo "Jenkins"
 minikube service jenkins --namespace jenkins --url
+echo "Rails App"
 minikube service railsapp-service --url
-minikube service grafana --namespace monitoring --url
