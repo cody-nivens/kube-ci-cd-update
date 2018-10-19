@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 KUBE_VERSION="v1.11.3"
-KUBE_MEMORY=12000
+KUBE_MEMORY=8000
 KUBE_CPUS=2
 
 function usage()

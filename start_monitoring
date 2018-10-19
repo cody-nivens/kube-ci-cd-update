@@ -1,0 +1,15 @@
+#!/bin/bash
+#
+
+kubectl apply -f monitoring-namespace.yaml
+
+helm install stable/heapster --name heapster --namespace kube-system
+helm install stable/prometheus --name prometheus --namespace monitoring
+helm install stable/grafana --name grafana --namespace monitoring
+
+# Wait for registry to finish initializing
+until kubectl get pod --namespace monitoring $(kubectl get pods --namespace monitoring -l 'app=grafana' -o jsonpath='{.items[0].metadata.name}') -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' | grep True ; do
+    echo -n "."
+    sleep 15
+done
+
