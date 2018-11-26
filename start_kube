@@ -52,10 +52,10 @@ helm init
 
 kubectl rollout status deployments/tiller-deploy --namespace kube-system
 
-./start_monitoring
+#./start_monitoring
 
 ./start_registry
 
 ./start_jenkins
 
-./start_services
+#./start_services
