@@ -6,5 +6,7 @@ echo "Registry"
 minikube service registry-ui --url
 echo "Jenkins"
 minikube service jenkins --namespace jenkins --url
-echo "Rails App"
-minikube service railsapp-service --url
+echo "Holocene App"
+minikube service holocene-service --url
+echo "Rothstocks App"
+minikube service rothstocks-service --url
