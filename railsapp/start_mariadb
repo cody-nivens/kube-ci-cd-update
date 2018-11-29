@@ -3,12 +3,22 @@
 set +e
 . ./.kdr_env
 
+wait_for_completion () {
+# Wait for commands to complete
+client_pod='mariadb-mariadb-client'
+until kubectl get pods ${client_pod} --namespace db-apps -o jsonpath='{.status.conditions[?(@.type=="Ready")].reason}'|grep 'PodCompleted' ; do
+    sleep 5
+    echo -n "."
+done
+}
+
 MARIADB_IMAGE="docker.io/bitnami/mariadb:10.1.33"
 db_host="mariadb-mariadb.db-apps.svc.cluster.local"
 
 # MariaDB for database for Rails apps
+#  --set rootUser.password=${root_pass},db.user=${db_user},db.name=${db_name},db.password=${db_user_pass} \
 helm install --name mariadb --namespace db-apps \
-  --set rootUser.password=${root_pass},db.user=${db_user},db.name=${db_name},db.password=${db_user_pass} \
+  --set rootUser.password=${root_pass} \
     stable/mariadb
 
 # phpmyadmin for creating databases and users
@@ -19,13 +29,7 @@ kubectl rollout status statefulset/mariadb-mariadb-master --namespace db-apps
 
 # Add timezone info for Groupdate gem
 kubectl run mariadb-mariadb-client --image  ${MARIADB_IMAGE} --namespace db-apps --restart=Never -- bash -c "mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -h ${db_host} -uroot -p${root_pass} mysql"
-
-# Wait for commands to complete
-client_pod='mariadb-mariadb-client'
-until kubectl get pods ${client_pod} --namespace db-apps -o jsonpath='{.status.conditions[?(@.type=="Ready")].reason}'|grep 'PodCompleted' ; do
-    sleep 5
-    echo -n "."
-done
+wait_for_completion
 
 # Stop the client as it is no longer needed
 kubectl delete pod mariadb-mariadb-client --namespace db-apps

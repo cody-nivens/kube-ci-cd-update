@@ -1,0 +1,140 @@
+#!/bin/bash -e
+
+RAILS_KEY=`cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 128 | head -n 1`
+RAILS_KEY_TEST=`cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 128 | head -n 1`
+
+function usage()
+{
+    echo "This script setups up databases and secrets for Rails projects"
+    echo ""
+    echo "./setup_databases <name of app>"
+    echo ""
+}
+
+if [ "$1" == "" ]; then
+	usage
+	exit 1
+fi
+
+app_name=$1
+
+randomstring () {
+  COUNT=${1:-10}
+  random_string=`date +%s | sha256sum | base64 | head -c $COUNT`
+}
+
+randomstring 10
+root_pass=$random_string
+
+echo ""
+echo "Please enter or accept the following passwords for using the Rails App application"
+echo ""
+
+db_user="${app_name}_user"
+read -e -p "MySQL database user name for ${app_name}? [${db_user}] " answer
+if [ ! -z "$answer" ] ; then
+  db_user=$answer
+fi
+
+db_name="${app_name}_db"
+read -e -p "MySQL user database name for ${app_name}? [${db_name}] " answer
+if [ ! -z "$answer" ] ; then
+  db_name=$answer
+fi
+
+randomstring 10
+db_user_pass=$random_string
+read -e -p "MySQL db_user password? [<random 10 chars>] " password
+if [ ! -z "$password" ] ; then
+  db_user_pass=$password
+fi
+
+echo ""
+while true; do
+    read -e -p "Do you wish to create a database for Rails application? [yN] " yn
+    case ${yn:0:1} in
+        y|Y )
+            break
+        ;;
+        * )
+            exit
+        ;;
+    esac
+done
+
+# Keep the keys to the kingdom
+echo "app_name=\"${app_name}\""              > .rls_env
+echo "db_user=\"${db_user}\""               >> .rls_env
+echo "db_user_pass=\"${db_user_pass}\""     >> .rls_env
+echo "db_name=\"${db_name}\""               >> .rls_env
+echo "rails_key=\"${RAILS_KEY}\""           >> .rls_env
+echo "rails_key_test=\"${RAILS_KEY_TEST}\"" >> .rls_env
+
+
+# Secrets must be in each environment to be useful
+#
+set +e
+for namespace in default db-apps app-test ; do
+    kubectl delete secret ${app_name}-db-user-pass --namespace ${namespace}
+    kubectl delete secret ${app_name}-db-user --namespace ${namespace}
+    if [ "${namespace}" == "app-test" ] ; then
+        kubectl delete secret ${app_name}-db-name --namespace ${namespace}
+    else
+        kubectl delete secret ${app_name}-db-name --namespace ${namespace}
+    fi
+done
+
+kubectl delete secret ${app_name}-secrets --namespace default
+kubectl delete secret ${app_name}-secrets --namespace app-test
+
+# Secrets must be in each environment to be useful
+#
+set +e
+for namespace in default db-apps app-test ; do
+    kubectl create secret generic ${app_name}-db-user-pass --namespace ${namespace} --from-literal=password=${db_user_pass}
+    kubectl create secret generic ${app_name}-db-user --namespace ${namespace} --from-literal=username=${db_user}
+    if [ "${namespace}" == "app-test" ] ; then
+        kubectl create secret generic ${app_name}-db-name --namespace ${namespace} --from-literal=name=${db_name}_test
+    else
+        kubectl create secret generic ${app_name}-db-name --namespace ${namespace} --from-literal=name=${db_name}
+    fi
+done
+
+kubectl create secret generic ${app_name}-secrets --namespace default --from-literal=secret-key-base=${RAILS_KEY}
+kubectl create secret generic ${app_name}-secrets --namespace app-test --from-literal=secret-key-base=${RAILS_KEY_TEST}
+
+# add user and databases into MariaDB
+
+wait_for_completion () {
+  # Wait for commands to complete
+  client_pod='mariadb-mariadb-client'
+  until kubectl get pods ${client_pod} --namespace db-apps -o jsonpath='{.status.conditions[?(@.type=="Ready")].reason}'|grep 'PodCompleted' ; do
+    sleep 5
+    echo -n "."
+  done
+}
+
+MARIADB_IMAGE="docker.io/bitnami/mariadb:10.1.33"
+db_host="mariadb-mariadb.db-apps.svc.cluster.local"
+
+# Stop the client as it is no longer needed
+kubectl delete pod mariadb-mariadb-client --namespace db-apps
+
+# Add app user and database
+QUERY1="CREATE USER IF NOT EXISTS '${db_user}'@'%' IDENTIFIED BY '${db_user_pass}'"
+QUERY1a="SET PASSWORD FOR '${db_user}'@'%' = PASSWORD('${db_user_pass}')"
+
+# Drop old database if it exists; Create test database; grant rights to use it"
+QUERY2="drop database if exists ${db_name}_test; create database ${db_name}_test; GRANT ALL ON ${db_name}_test.* TO '${db_user}'@'%'"
+
+# Create the prod database if it does not exist
+QUERY3="create database if not exists ${db_name}; GRANT ALL ON ${db_name}.* TO '${db_user}'@'%'"
+
+kubectl run mariadb-mariadb-client --image  ${MARIADB_IMAGE} --namespace db-apps --restart=Never --command -- mysql -h ${db_host} -uroot -p${root_pass} mysql -e "${QUERY1}; ${QUERY1a}; ${QUERY2}; ${QUERY3}"
+wait_for_completion
+
+
+# Stop the client as it is no longer needed
+kubectl delete pod mariadb-mariadb-client --namespace db-apps
+
+set -e

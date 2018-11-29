@@ -47,30 +47,11 @@ randomstring 10
 root_pass=$random_string
 
 echo ""
-echo "Please enter or accept the following passwords for using the Rails App application"
+echo "Please enter or accept the following passwords"
 echo ""
 read -e -p "MySQL root password? [<random 10 chars>] " password
 if [ ! -z "$password" ] ; then
   root_pass=$password
-fi
-
-db_user='user'
-read -e -p "MySQL database user name? [${db_user}] " answer
-if [ ! -z "$answer" ] ; then
-  db_user=$answer
-fi
-
-db_name='user_database'
-read -e -p "MySQL user database name? [${db_name}] " answer
-if [ ! -z "$answer" ] ; then
-  db_name=$answer
-fi
-
-randomstring 10
-db_user_pass=$random_string
-read -e -p "MySQL db_user password? [<random 10 chars>] " password
-if [ ! -z "$password" ] ; then
-  db_user_pass=$password
 fi
 
 #randomstring 10
@@ -102,16 +83,12 @@ done
 
 # Keep the keys to the kingdom
 echo "root_pass=\"${root_pass}\""       > .kdr_env
-echo "db_user=\"${db_user}\""           >> .kdr_env
-echo "db_user_pass=\"${db_user_pass}\"" >> .kdr_env
-echo "db_name=\"${db_name}\""           >> .kdr_env
 echo "redis_user_pass=\"${redis_user_pass}\"" >> .kdr_env
 echo "test_redis_user_pass=\"${test_redis_user_pass}\"" >> .kdr_env
 
 # Add namespaces
 kubectl apply --namespace app-test -f db-apps-namespace.yaml
 kubectl apply --namespace app-test -f app-test-namespace.yaml
-
 
 ./start_mariadb
 
@@ -122,45 +99,14 @@ kubectl apply --namespace app-test -f app-test-namespace.yaml
 set +e
 for namespace in default db-apps app-test ; do
     kubectl create secret generic db-root-pass --namespace ${namespace} --from-literal=password=${root_pass}
-    kubectl create secret generic db-user-pass --namespace ${namespace} --from-literal=password=${db_user_pass}
-    kubectl create secret generic db-user --namespace ${namespace} --from-literal=username=${db_user}
     if [ "${namespace}" == "app-test" ] ; then
-        kubectl create secret generic db-name --namespace ${namespace} --from-literal=name=${db_name}_test
 	kubectl create secret generic redis-test --namespace ${namespace} --from-literal=redis_password=${test_redis_user_pass}
     else
-        kubectl create secret generic db-name --namespace ${namespace} --from-literal=name=${db_name}
 	kubectl create secret generic redis --namespace ${namespace} --from-literal=password=${redis_user_password}
     fi
 done
-
-kubectl create secret generic railsapp-secrets --namespace default --from-literal=secret-key-base=${RAILS_KEY}
-kubectl create secret generic railsapp-secrets --namespace app-test --from-literal=secret-key-base=${RAILS_KEY_TEST}
 
 kubectl rollout status statefulset/mariadb-mariadb-master --namespace db-apps
 
 set -e
 
-sleep 30
-
-./rails_recreate_test
-
-echo "Follow the project the linux.com article noted in the README.md file,"
-echo "build and deploy a hello-kenzan application."
-echo ""
-echo "To access it via a web browser, type the following command:"
-echo ""
-echo "minikube service hello-kenzan --namespace jenkins"
-echo ""
-echo "For a Rails application, use: https://github.com/cody-nivens/rothstock.git"
-echo ""
-echo "To access it via a web browser, type the following command:"
-echo ""
-echo "minikube service railsapp-service"
-echo ""
-echo "To access phpmyadmin, you will need to do the following:"
-echo ""
-echo 'export POD_NAME=$(kubectl get pods --namespace db-apps -l "app=phpmyadmin,release=phpmyadmin" -o jsonpath="{.items[0].metadata.name}")'
-echo 'kubectl port-forward --namespace db-apps $POD_NAME 8080:80'
-echo ""
-echo "phpmyadmin will only work from http://127.0.0.1"
-echo "To use:  http://127.0.0.1:8080"
