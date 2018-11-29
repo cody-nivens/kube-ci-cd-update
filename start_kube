@@ -4,34 +4,13 @@ function usage()
 {
     echo "Adds a registry and Jenkins to kubernetes cluster"
     echo ""
-    echo "./start_kube.sh"
-    echo "\t-h --help"
-    echo "\t--openall"
+    echo "./start_kube"
     echo ""
 }
 
-while [ "$1" != "" ]; do
-    PARAM=`echo $1 | awk -F= '{print $1}'`
-    VALUE=`echo $1 | awk -F= '{print $2}'`
-    case $PARAM in
-        -h | --help)
-            usage
-            exit
-            ;;
-#        --environment)
-#            ENVIRONMENT=$VALUE
-#            ;;
-        --openall)
-            OPEN_ALL=1
-            ;;
-        *)
-            echo "ERROR: unknown parameter \"$PARAM\""
-            usage
-            exit 1
-            ;;
-    esac
-    shift
-done
+if [ "$1" != "" ]; then
+fi
+
 
 echo ""
 while true; do
@@ -52,10 +31,6 @@ helm init
 
 kubectl rollout status deployments/tiller-deploy --namespace kube-system
 
-#./start_monitoring
-
 ./start_registry
 
 ./start_jenkins
-
-#./start_services
