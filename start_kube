@@ -8,10 +8,6 @@ function usage()
     echo ""
 }
 
-if [ "$1" != "" ]; then
-fi
-
-
 echo ""
 while true; do
     read -e -p "Do you wish install a registry and Jenkins? [yN] " yn

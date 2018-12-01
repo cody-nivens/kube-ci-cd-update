@@ -18,13 +18,14 @@ fi
 
 app_name=$1
 
+. ./.kdr_env
+
 randomstring () {
   COUNT=${1:-10}
   random_string=`date +%s | sha256sum | base64 | head -c $COUNT`
 }
 
 randomstring 10
-root_pass=$random_string
 
 echo ""
 echo "Please enter or accept the following passwords for using the Rails App application"
