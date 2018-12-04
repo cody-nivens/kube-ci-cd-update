@@ -1,7 +1,6 @@
 #!/bin/bash -e
 
-KUBE_VERSION="v1.11.4"
-#KUBE_VERSION="v1.12.1"
+KUBE_VERSION="v1.13.0"
 KUBE_MEMORY=10000
 KUBE_CPUS=2
 MINIKUBE_VERSION='v0.30.0'
@@ -63,3 +62,10 @@ sudo rm -rf ~/.kube
 minikube start --memory ${KUBE_MEMORY} --cpus ${KUBE_CPUS} --kubernetes-version ${KUBE_VERSION}
 
 minikube addons enable ingress
+
+# Wait for storage-provisioner to finish initializing
+until kubectl get pod storage-provisioner -n kube-system -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' | grep True ; do
+    echo -n "."
+    sleep 15
+done
+
