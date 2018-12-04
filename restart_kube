@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-KUBE_VERSION="v1.11.4"
+KUBE_VERSION="v1.13.0"
 KUBE_MEMORY=10000
 KUBE_CPUS=2
 
