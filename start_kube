@@ -1,16 +1,43 @@
 #!/bin/bash -e
 
-function usage()
-{
-    echo "Adds a registry and Jenkins to kubernetes cluster"
-    echo ""
-    echo "./start_kube"
-    echo ""
+RAILS_KEY=`cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 128 | head -n 1`
+RAILS_KEY_TEST=`cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 128 | head -n 1`
+
+MARIADB_IMAGE="docker.io/bitnami/mariadb:10.1.33"
+db_host="mariadb-mariadb.db-apps.svc.cluster.local"
+
+
+function wait_for_ready_by_label {
+    until kubectl get pod  $(kubectl get pods -l "$1" -n $2 -o jsonpath='{.items[0].metadata.name}') -n $2 -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' | grep True ; do
+        echo -n "."
+        sleep 15
+    done
+}
+
+function wait_for_ready {
+    # Wait for commands to complete
+    until kubectl get pods $1 --namespace $2 -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'|grep True ; do
+        sleep 5
+        echo -n "."
+    done
+}
+
+function wait_for_completion {
+# Wait for commands to complete
+until kubectl get pods ${1} --namespace $2 -o jsonpath='{.status.conditions[?(@.type=="Ready")].reason}'|grep 'PodCompleted' ; do
+    sleep 5
+    echo -n "."
+done
+}
+
+function randomstring {
+  COUNT=${1:-10}
+  random_string=`date +%s | sha256sum | base64 | head -c $COUNT`
 }
 
 echo ""
 while true; do
-    read -e -p "Do you wish install a registry and Jenkins? [yN] " yn
+    read -e -p "Do you wish to to stop and delete minikube and install minikube with Registry, Jenkins, MariaDB and Redis? [yN] " yn
     case ${yn:0:1} in
         y|Y )
             break
@@ -24,9 +51,101 @@ done
 # Helm
 #
 helm init
+wait_for_ready_by_label 'app=helm,name=tiller' 'kube-system'
 
-kubectl rollout status deployments/tiller-deploy --namespace kube-system
+# Setup registry
+kubectl apply -f registry/registry.yaml
+wait_for_ready_by_label 'app=registry' 'default'
 
-./start_registry
+# Setup proxy to registry
+docker stop socat-registry
+docker rm socat-registry
+docker run -d -e "REGIP=`minikube ip`" --name socat-registry -p 30400:5000 chadmoon/socat:latest bash -c "socat TCP4-LISTEN:5000,fork,reuseaddr TCP4:`minikube ip`:30400"
 
-./start_jenkins
+# These are necessary for jenkins to deploy the hello-kenzan app.
+kubectl create sa jenkins
+kubectl create clusterrolebinding jenkins --clusterrole cluster-admin --serviceaccount=jenkins:default
+
+# Build jenkins and push to registry
+cd jenkins
+
+docker build -t 127.0.0.1:30400/jenkins:latest -f Dockerfile ./ && docker push 127.0.0.1:30400/jenkins:latest
+
+# Wait for registry to finish with jenkins
+sleep 30
+
+# Add newly built jenkins to cluster
+kubectl apply -f jenkins.yaml
+wait_for_ready_by_label 'app=jenkins' 'jenkins'
+
+cd ..
+
+randomstring 10
+root_pass=$random_string
+
+echo ""
+echo "Please enter or accept the following passwords"
+echo ""
+read -e -p "MySQL root password? [<random 10 chars>] " password
+if [ ! -z "$password" ] ; then
+  root_pass=$password
+fi
+
+#randomstring 10
+redis_user_pass=$random_string
+read -e -p "Redis_user password? [<random 10 chars>] " password
+if [ ! -z "$password" ] ; then
+  redis_user_pass=$password
+fi
+
+#randomstring 10
+test_redis_user_pass=$random_string
+read -e -p "Test Redis_user password? [<random 10 chars>] " password
+if [ ! -z "$password" ] ; then
+  test_redis_user_pass=$password
+fi
+
+# Add namespaces
+kubectl apply --namespace app-test -f db-apps-namespace.yaml
+kubectl apply --namespace app-test -f app-test-namespace.yaml
+
+# MariaDB for database for Rails apps
+#  --set rootUser.password=${root_pass},db.user=${db_user},db.name=${db_name},db.password=${db_user_pass} \
+helm install --name mariadb --namespace db-apps \
+  --set rootUser.password=${root_pass} \
+    stable/mariadb
+wait_for_ready_by_label 'app=mariadb,component=master' 'db-apps'
+
+# phpmyadmin for creating databases and users
+#
+helm install --name phpmyadmin --namespace db-apps --set db.host=${db_host},db.port=3306,probesEnabled=false stable/phpmyadmin
+
+# Add timezone info for Groupdate gem
+kubectl run mariadb-mariadb-client --image  ${MARIADB_IMAGE} --namespace db-apps --restart=Never -- bash -c "mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -h ${db_host} -uroot -p${root_pass} mysql"
+wait_for_completion 'mariadb-mariadb-client' 'db-apps'
+
+# Stop the client as it is no longer needed
+kubectl delete pod mariadb-mariadb-client --namespace db-apps
+
+# Start redis
+#
+helm install --name redis \
+  --set password=${redis_user_pass} \
+  --set persistence.enabled=false \
+    stable/redis
+wait_for_ready 'redis-master-0' 'default'
+
+helm install --name redis-test \
+  --namespace app-test \
+  --set password=${test_redis_user_pass} \
+  --set persistence.enabled=false \
+    stable/redis
+wait_for_ready 'redis-test-master-0' 'app-test'
+
+# Secrets must be in each environment to be useful
+#
+for namespace in default db-apps app-test ; do
+    kubectl create secret generic db-root-pass --namespace ${namespace} --from-literal=password=${root_pass}
+done
+
+
