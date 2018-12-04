@@ -18,7 +18,7 @@ fi
 
 app_name=$1
 
-. ./.kdr_env
+root_pass=`kubectl get secret db-root-pass -o jsonpath='{.data.password}'|base64 --decode`
 
 randomstring () {
   COUNT=${1:-10}
@@ -63,15 +63,6 @@ while true; do
     esac
 done
 
-# Keep the keys to the kingdom
-echo "app_name=\"${app_name}\""              > .rls_env
-echo "db_user=\"${db_user}\""               >> .rls_env
-echo "db_user_pass=\"${db_user_pass}\""     >> .rls_env
-echo "db_name=\"${db_name}\""               >> .rls_env
-echo "rails_key=\"${RAILS_KEY}\""           >> .rls_env
-echo "rails_key_test=\"${RAILS_KEY_TEST}\"" >> .rls_env
-
-
 # Secrets must be in each environment to be useful
 #
 set +e
@@ -90,7 +81,6 @@ kubectl delete secret ${app_name}-secrets --namespace app-test
 
 # Secrets must be in each environment to be useful
 #
-set +e
 for namespace in default db-apps app-test ; do
     kubectl create secret generic ${app_name}-db-user-pass --namespace ${namespace} --from-literal=password=${db_user_pass}
     kubectl create secret generic ${app_name}-db-user --namespace ${namespace} --from-literal=username=${db_user}
