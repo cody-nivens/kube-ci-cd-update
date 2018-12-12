@@ -1,9 +1,9 @@
 #!/bin/bash -e
 
-KUBE_VERSION="v1.13.0"
+KUBE_VERSION="v1.11.5"
 KUBE_MEMORY=10000
 KUBE_CPUS=2
-MINIKUBE_VERSION='v0.30.0'
+MINIKUBE_VERSION='v0.31.0'
 
 RAILS_KEY=`cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 128 | head -n 1`
 RAILS_KEY_TEST=`cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 128 | head -n 1`
@@ -53,6 +53,31 @@ while true; do
     esac
 done
 
+randomstring 10
+root_pass=$random_string
+
+echo ""
+echo "Please enter or accept the following passwords"
+echo ""
+read -e -p "MySQL root password? [<random 10 chars>] " password
+if [ ! -z "$password" ] ; then
+  root_pass=$password
+fi
+
+#randomstring 10
+redis_user_pass=$random_string
+read -e -p "Redis_user password? [<random 10 chars>] " password
+if [ ! -z "$password" ] ; then
+  redis_user_pass=$password
+fi
+
+#randomstring 10
+test_redis_user_pass=$random_string
+read -e -p "Test Redis_user password? [<random 10 chars>] " password
+if [ ! -z "$password" ] ; then
+  test_redis_user_pass=$password
+fi
+
 minikube stop
 minikube delete
 
@@ -101,31 +126,6 @@ kubectl apply -f jenkins.yaml
 wait_for_ready_by_label 'app=jenkins' 'jenkins'
 
 cd ..
-
-randomstring 10
-root_pass=$random_string
-
-echo ""
-echo "Please enter or accept the following passwords"
-echo ""
-read -e -p "MySQL root password? [<random 10 chars>] " password
-if [ ! -z "$password" ] ; then
-  root_pass=$password
-fi
-
-#randomstring 10
-redis_user_pass=$random_string
-read -e -p "Redis_user password? [<random 10 chars>] " password
-if [ ! -z "$password" ] ; then
-  redis_user_pass=$password
-fi
-
-#randomstring 10
-test_redis_user_pass=$random_string
-read -e -p "Test Redis_user password? [<random 10 chars>] " password
-if [ ! -z "$password" ] ; then
-  test_redis_user_pass=$password
-fi
 
 # Add namespaces
 kubectl apply --namespace app-test -f db-apps-namespace.yaml
