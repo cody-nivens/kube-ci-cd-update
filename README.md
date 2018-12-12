@@ -6,8 +6,7 @@ Kubernetes as well as the problems of running applications involving multiple se
 This project is associated with [https://github.com/cody-nivens/rails-ci-k8s.git](https://github.com/cody-nivens/rails-ci-k8s.git).
 That project installs a generator to create the files necessary to run under this project.  Running the install script, saving to 
 the repo server and running using Jenkins to build, test and deliver the project as a kubernetes deployment.
-The install creates a Jenkinsfile, two database and Dockerfiles for testing and production.  
-The Kubernetes setup yaml files are stored in the k8s directory at the application top. 
+The install creates a Jenkinsfile, two database and Dockerfiles for testing and production.  The Kubernetes setup yaml files are stored in the k8s directory at the application top. 
 
 ## Getting Started
 
@@ -27,7 +26,7 @@ Assuming a blank minikube setup, *the following script removes and creates a new
   *  *create\_kube* - cleans out the current minikube cluster and replaces it with a kubernetes cluster with memory and cpus specified in the script.
 Additionally, an addon for ingress is added.  
 The main effort is a script to start helm, add a registry, rebuild Jenkins and add to the registry. 
-Additionally sets up the root password for MariaDB and Redis servers and start them in the cluster.
+Additionally it sets up the root passwords for MariaDB and Redis servers as starting them in the cluster.
 
   *  *restart\_kube* - shuts down minikube and restarts it with version, memory and cpus specified in the scripts.
 
