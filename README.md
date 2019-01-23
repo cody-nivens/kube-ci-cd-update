@@ -1,12 +1,12 @@
 # Kubernetes-CI-CD and Ruby on Rails
 
-This project creates a minikube Kubernetes installation for the running of Rails applications.  It was created to learn more of 
+This project creates a minikube Kubernetes installation for the running of Rails applications.  It was created to learn more of
 Kubernetes as well as the problems of running applications involving multiple services in the cluster.
 
 This project is associated with [https://github.com/cody-nivens/rails-ci-k8s.git](https://github.com/cody-nivens/rails-ci-k8s.git).
-That project installs a generator to create the files necessary to run under this project.  Running the install script, saving to 
+That project installs a generator to create the files necessary to run under this project.  Running the install script, saving to
 the repo server and running using Jenkins to build, test and deliver the project as a kubernetes deployment.
-The install creates a Jenkinsfile, two database and Dockerfiles for testing and production.  The Kubernetes setup yaml files are stored in the k8s directory at the application top. 
+The install creates a Jenkinsfile, two database and Dockerfiles for testing and production.  The Kubernetes setup yaml files are stored in the k8s directory at the application top.
 
 ## Getting Started
 
@@ -15,23 +15,28 @@ git clone https://github.com/cody-nivens/kube-ci-cd-update.git
 cd kube-ci-cd-update
 ```
 
+For the purpose of demonstrating technology, the test application to build via these instructions is https://github.com/cody-nivens/holocene.git.
+
 ### Prerequisites
 
 This project requires at least 8GB ram and two CPU cores.  These values are used by several scripts in starting, restarting
 and creating the minikube setup.
 
+Ideally, the directory on the host machine that minikube uses to store all information would be a mounted partition using *xls* formatting.
+During the build processes if two containers are being built at once, the *ext4* file format will suffer from a lack of I-Nodes causing pods to be ejected.  *Xls* disk format has a dynamic number of I-Nodes and handles the builds without a problem.
+
 ### Installing
 
 Assuming a blank minikube setup, *the following script removes and creates a new cluster*.
   *  *create\_kube* - cleans out the current minikube cluster and replaces it with a kubernetes cluster with memory and cpus specified in the script.
-Additionally, an addon for ingress is added.  
-The main effort is a script to start helm, add a registry, rebuild Jenkins and add to the registry. 
+Additionally, an addon for ingress is added. 
+The main effort is a script to start helm, add a registry, rebuild Jenkins and add to the registry.
 Additionally it sets up the root passwords for MariaDB and Redis servers as starting them in the cluster.
 
   *  *restart\_kube* - shuts down minikube and restarts it with version, memory and cpus specified in the scripts.
 
   *  *setup\_databases* - used to create the databases, user account and password for the application and
- stores the user name and database password in the Kubernetes config storage by namespace.  
+ stores the user name and database password in the Kubernetes config storage by namespace. 
 
 ```sh
 ./create_kube
@@ -45,9 +50,16 @@ Additionally it sets up the root passwords for MariaDB and Redis servers as star
 ./setup_databases holocene
 ```
 
-This will setup a test and production database for the application holocene.  
+This will setup a test and production database for the application holocene. 
 Additionally, the user account name(holocene\_db\_user), database name (holocene, holocene\_test) and password will be stored in Kubernetes' config storage.
 
+For some projects such as holocene, we need external storage for the ActiveStorage data.  The default-sources-volume files setup an NFS folder for the
+Holocene depolyment to use for the ActiveStorage.
+
+```sh
+kubectl apply -f default-sources-volume.yaml
+kubectl apply -f default-sources-volume-claim.yaml
+```
 
 #### Install configuration files for building a regular and test container and run those containers under Kubernetes.
 
@@ -89,7 +101,7 @@ The Jenkinsfile of the application will do the following:
 3.  If the test job succeeds, a setup job run which generates the databases, runs the migrations and loads seed data.
 4.  With the succeed of the setup job, the application is setup to run in the cluster using a deployment.
 
-With each run of the Jenkins job, a numbered image is pushed to the Registry for production.  For tests, only one 
+With each run of the Jenkins job, a numbered image is pushed to the Registry for production.  For tests, only one
 image is created called 'latest' because the testing is done by a job which is deleted before the new test job is run.
 The build number is used to force Kubernetes to rollover the pods where the application is running.
 
@@ -111,6 +123,8 @@ The user password for an application can be gotten from Kubernetes secrets vault
 ```sh
 kubectl get secret holocene-db-user-pass -o jsonpath='{.data.password}'|base64 --decode
 ```
+
+For viewing and searching the logs, I use a setup of Elasticsearch and Kibana from https://github.com/giantswarm/kubernetes-elastic-stack
 
 ## Acknowledgements
 
