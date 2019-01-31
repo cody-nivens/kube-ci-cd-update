@@ -89,6 +89,27 @@ git push origin master
 1. Click Save
 1. Run the job.
 
+#### Deleting tagged images from the Registry
+
+The registry.yaml file uses an environment variable to allow for deleting tagged images in a repository.  
+
+I use the [https://github.com/oniksfly/registry_cleaner.git](registry_cleaner.rb) script to delete tagged images.
+To complete the deletion, you must execute the registry garbage clean inside of the container.
+Additionally, the registry proxy must be setup.
+
+```sh
+./registry/setup_reg_proxy 
+```
+
+```sh
+git clone https://github.com/oniksfly/registry_cleaner.git
+cd registry_cleaner
+./registry_cleaner.rb --host=http://192.168.99.100 --port=30400 --repository=holocene --tags_count=4
+kubectl get po 
+kubectl exec -ti registry-yyyyyyyyy-zzzzz sh
+bin/registry garbage-collect /etc/docker/registry/config.yml
+```
+
 #### Sample Applications
 
 * [https://github.com/cody-nivens/rothstock.git](https://github.com/cody-nivens/rothstock.git) -- An example of a Rails application which illustrates how a Rails environment is handled with jobs to perform rake commands on the database as well as run tests.
@@ -131,5 +152,6 @@ For viewing and searching the logs, I use a setup of Elasticsearch and Kibana fr
 This work was originally done for doing the first exercise on [Linux.com - Set Up a CI/CD Pipeline with a Jenkins Pod in Kubernetes (Part 2)](https://www.linux.com/blog/learn/chapter/Intro-to-Kubernetes/2017/6/set-cicd-pipeline-jenkins-pod-kubernetes-part-2).
 
 I started reading [Linux.com:Set Up a CI/CD Pipeline with Kubernetes Part 1: Overview](https://www.linux.com/blog/learn/chapter/Intro-to-Kubernetes/2017/5/set-cicd-pipeline-kubernetes-part-1-overview) to learn more about Kubernetes and Jenkins 2.  In deployment, Jenkins bombed because as is often the case, things got out of date.
+
 I recreated the Dockerfile for (docker.io/chadmoon/jenkins-docker-kubectl) using [dockerfile-from-image](https://stackoverflow.com/questions/19104847/how-to-generate-a-dockerfile-from-an-image?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa).  I modified the script to include adding plugins to the container image before running it in a pod.  Additionally, I added a groovy script that in conjunction with the start up script for the container create an admin user and enable security.
 

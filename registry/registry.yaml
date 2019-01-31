@@ -86,6 +86,9 @@ spec:
         ports:
         - containerPort: 5000
           name: registry
+        env:
+        - name: REGISTRY_STORAGE_DELETE_ENABLED
+          value: "true"
       - name: registryui
         image: hyper/docker-registry-web
         ports:
